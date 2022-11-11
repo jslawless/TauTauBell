@@ -57,4 +57,4 @@ while line:
     writer.write_event(evt)    
     line = f.readline()
     evt_num+=1
-
+print(evt_num)
