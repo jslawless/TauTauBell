@@ -8,15 +8,15 @@ import os
 
 #Set to UPDATE to leave previous files there
 #Open the .root file in RECREATE mode in order to wipe all histograms previously there
-myfile = TFile( 'RootFiles/startup_cutonZmass.root', 'RECREATE' )
+myfile = TFile( 'RootFiles/startup.root', 'RECREATE' )
 
 #
 def histogram(directory, name, description):
     hist1 = TH1F( name + "_im", "Invariant Mass of Muon Pairs", 50, 0, 100 )
     hist2 = TH1F( name + "_tau_im", "Invariant Mass of tau Pairs", 100, 0, 200 )
     hist3 = TH1F( name + "_combined_fv", "Added Magnitude of Tau Four Vectors", 100, -200, 200 )
-    hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Four Vectors Boosted using Muon Frame, cut at 2.75 away from Z m", 100, -200, 200 )
-
+    hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Four Vectors Boosted using Muon Frame", 100, -200, 200 )
+    hist5 = TH1F( name + "_angleBetween", "Angle between Unit vectors of plane", 50, -5, 5) 
     directory = os.fsencode(directory)
 
     reader = None
@@ -47,6 +47,8 @@ def histogram(directory, name, description):
         antimuon_candidates = []
         tau_candidates =[]
         antitau_candidates = []
+        pion_candidates = []
+        antipion_candidates = []
         for candidate in evt.particles:
             if candidate.pid == 13:
                 muon_candidates.append(candidate)
@@ -56,10 +58,16 @@ def histogram(directory, name, description):
                 tau_candidates.append(candidate)
             if candidate.pid == -15:
                 antitau_candidates.append(candidate)
+            if candidate.pid == 211:
+                pion_candidates.append(candidate)
+            if candidate.pid == -211:
+                antipion_candidates.append(candidate)
         muon = muon_candidates[0]
         antimuon = antimuon_candidates[0]
         tau = tau_candidates[0]
         antitau = antitau_candidates[0]
+        pion = pion_candidates[0]
+        antipion = antipion_candidates[0]
         for i in muon_candidates:
             if i.momentum.pt() > muon.momentum.pt():
                 muon = i
@@ -72,9 +80,13 @@ def histogram(directory, name, description):
         for i in antitau_candidates:
             if i.momentum.pt() > antitau.momentum.pt():
                 antitau = i
+        for i in pion_candidates:
+            if i.momentum.pt() > pion.momentum.pt():
+                pion = i
+        for i in antipion_candidates:
+            if i.momentum.pt() > antipion.momentum.pt():
+                antipion = i
         momentum = (muon.momentum + antimuon.momentum)
-        if(abs(momentum.m() - 91.19) > 2.75):
-            continue
         hist1.Fill(momentum.m())
         muon_boost = TLorentzVector()
         muon_boost.SetPx(momentum.px)
@@ -91,14 +103,30 @@ def histogram(directory, name, description):
         antitau_fourvector.SetPy(antitau.momentum.py)
         antitau_fourvector.SetPz(antitau.momentum.pz)
         antitau_fourvector.SetE(antitau.momentum.e)
+        pion_fourvector = TLorentzVector()
+        pion_fourvector.SetPx(pion.momentum.px)
+        pion_fourvector.SetPy(pion.momentum.py)
+        pion_fourvector.SetPz(pion.momentum.pz)
+        pion_fourvector.SetE(pion.momentum.e)
+        antipion_fourvector = TLorentzVector()
+        antipion_fourvector.SetPx(antipion.momentum.px)
+        antipion_fourvector.SetPy(antipion.momentum.py)
+        antipion_fourvector.SetPz(antipion.momentum.pz)
+        antipion_fourvector.SetE(antipion.momentum.e)
         hist2.Fill((tau.momentum+antitau.momentum).m())
         hist3.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
         tau_fourvector.Boost((91/125)*muon_boost.BoostVector())
         antitau_fourvector.Boost((91/125)*muon_boost.BoostVector())
+        pion_fourvector.Boost((91/125)*muon_boost.BoostVector())
+        antipion_fourvector.Boost((91/125)*muon_boost.BoostVector())
         hist4.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
+        u1 = tau_fourvector.Vect().Cross(pion_fourvector.Vect()).Unit()
+        u2 = antitau_fourvector.Vect().Cross(antipion_fourvector.Vect()).Unit()
+        hist5.Fill(u1.Angle(u2))
     hist1.Write()
     hist2.Write()
     hist3.Write()
     hist4.Write()
+    hist5.Write()
 histogram("data","Initial study","H tau tau events")
 myfile.Close()
