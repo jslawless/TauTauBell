@@ -1,7 +1,7 @@
 import pyhepmc as hep
 import math
 import scipy.constants as sci
-from ROOT import TCanvas, TPad, TH1F, TFile
+from ROOT import TCanvas, TPad, TH1F,TH2F, TFile
 from ROOT import gROOT, gBenchmark, TLorentzVector
 import os
 
@@ -16,7 +16,10 @@ def histogram(directory, name, description):
     hist2 = TH1F( name + "_tau_im", "Invariant Mass of tau Pairs", 100, 0, 200 )
     hist3 = TH1F( name + "_combined_fv", "Added Magnitude of Tau Four Vectors", 100, -200, 200 )
     hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Four Vectors Boosted using Muon Frame", 100, -200, 200 )
-    hist5 = TH1F( name + "_angleBetween", "Angle between Unit vectors of plane", 50, -5, 5) 
+    hist5 = TH1F( name + "_angleBetween", "Angle between Unit vectors of plane, tau cross pi minus", 50, -5, 5) 
+    hist2D = TH2F( name + "_im_dr", "Invariant Mass of Z vs Tau - AntiTau, no cut", 100,81, 101, 100, 0, 12 )
+    hist2D.GetXaxis().SetTitle("Invariant Mass (GeV)")
+    hist2D.GetYaxis().SetTitle("Tau - Antitau (GeV)")
     directory = os.fsencode(directory)
 
     reader = None
@@ -47,8 +50,8 @@ def histogram(directory, name, description):
         antimuon_candidates = []
         tau_candidates =[]
         antitau_candidates = []
-        pion_candidates = []
-        antipion_candidates = []
+        piplus_candidates = []
+        piminus_candidates = []
         for candidate in evt.particles:
             if candidate.pid == 13:
                 muon_candidates.append(candidate)
@@ -59,15 +62,15 @@ def histogram(directory, name, description):
             if candidate.pid == -15:
                 antitau_candidates.append(candidate)
             if candidate.pid == 211:
-                pion_candidates.append(candidate)
+                piplus_candidates.append(candidate)
             if candidate.pid == -211:
-                antipion_candidates.append(candidate)
+                piminus_candidates.append(candidate)
         muon = muon_candidates[0]
         antimuon = antimuon_candidates[0]
         tau = tau_candidates[0]
         antitau = antitau_candidates[0]
-        pion = pion_candidates[0]
-        antipion = antipion_candidates[0]
+        piplus = piplus_candidates[0]
+        piminus = piminus_candidates[0]
         for i in muon_candidates:
             if i.momentum.pt() > muon.momentum.pt():
                 muon = i
@@ -80,12 +83,12 @@ def histogram(directory, name, description):
         for i in antitau_candidates:
             if i.momentum.pt() > antitau.momentum.pt():
                 antitau = i
-        for i in pion_candidates:
-            if i.momentum.pt() > pion.momentum.pt():
-                pion = i
-        for i in antipion_candidates:
-            if i.momentum.pt() > antipion.momentum.pt():
-                antipion = i
+        for i in piplus_candidates:
+            if i.momentum.pt() > piplus.momentum.pt():
+                piplus = i
+        for i in piminus_candidates:
+            if i.momentum.pt() > piminus.momentum.pt():
+                piminus = i
         momentum = (muon.momentum + antimuon.momentum)
         hist1.Fill(momentum.m())
         muon_boost = TLorentzVector()
@@ -103,30 +106,27 @@ def histogram(directory, name, description):
         antitau_fourvector.SetPy(antitau.momentum.py)
         antitau_fourvector.SetPz(antitau.momentum.pz)
         antitau_fourvector.SetE(antitau.momentum.e)
-        pion_fourvector = TLorentzVector()
-        pion_fourvector.SetPx(pion.momentum.px)
-        pion_fourvector.SetPy(pion.momentum.py)
-        pion_fourvector.SetPz(pion.momentum.pz)
-        pion_fourvector.SetE(pion.momentum.e)
-        antipion_fourvector = TLorentzVector()
-        antipion_fourvector.SetPx(antipion.momentum.px)
-        antipion_fourvector.SetPy(antipion.momentum.py)
-        antipion_fourvector.SetPz(antipion.momentum.pz)
-        antipion_fourvector.SetE(antipion.momentum.e)
+        piplus_fourvector = TLorentzVector()
+        piplus_fourvector.SetPx(piplus.momentum.px)
+        piplus_fourvector.SetPy(piplus.momentum.py)
+        piplus_fourvector.SetPz(piplus.momentum.pz)
+        piplus_fourvector.SetE(piplus.momentum.e)
+        piminus_fourvector = TLorentzVector()
+        piminus_fourvector.SetPx(piminus.momentum.px)
+        piminus_fourvector.SetPy(piminus.momentum.py)
+        piminus_fourvector.SetPz(piminus.momentum.pz)
+        piminus_fourvector.SetE(piminus.momentum.e)
         hist2.Fill((tau.momentum+antitau.momentum).m())
         hist3.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
-        tau_fourvector.Boost((91/125)*muon_boost.BoostVector())
-        antitau_fourvector.Boost((91/125)*muon_boost.BoostVector())
-        pion_fourvector.Boost((91/125)*muon_boost.BoostVector())
-        antipion_fourvector.Boost((91/125)*muon_boost.BoostVector())
+        tau_fourvector.Boost((momentum.m()/125)*muon_boost.BoostVector())
+        antitau_fourvector.Boost((momentum.m()/125)*muon_boost.BoostVector())
+        piplus_fourvector.Boost((momentum.m()/125)*muon_boost.BoostVector())
+        piminus_fourvector.Boost((momentum.m()/125)*muon_boost.BoostVector())
         hist4.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
-        u1 = tau_fourvector.Vect().Cross(pion_fourvector.Vect()).Unit()
-        u2 = antitau_fourvector.Vect().Cross(antipion_fourvector.Vect()).Unit()
+        u1 = tau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
+        u2 = antitau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
         hist5.Fill(u1.Angle(u2))
-    hist1.Write()
-    hist2.Write()
-    hist3.Write()
-    hist4.Write()
-    hist5.Write()
+        hist2D.Fill(momentum.m(),(tau_fourvector + antitau_fourvector).Vect().Mag())
+    myfile.Write()
 histogram("data","Initial study","H tau tau events")
 myfile.Close()
