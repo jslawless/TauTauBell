@@ -6,12 +6,12 @@ from ROOT import gROOT, gBenchmark
 import os
 
 
-f = open("data/e2E2e3E3_H250ISR1BS1_LR_addH.lhe_tauDecaysigsig_mixingAngle0.hepevt")
+f = open("mixing_angle_data/e2E2e3E3_H250ISR1BS1_LR_addH.lhe_tauDecaysigsig_mixingAngle0.5.hepevt")
 
 line = f.readline()
 evt_num = 0
 
-writer = hep.WriterAscii("data/LR0.hepmc")
+writer = hep.WriterAscii("mixing_angle_data/LR0.5.hepmc")
 
 while line:
 #while evt_num < 4: 

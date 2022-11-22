@@ -8,7 +8,7 @@ import os
 
 #Set to UPDATE to leave previous files there
 #Open the .root file in RECREATE mode in order to wipe all histograms previously there
-myfile = TFile( 'RootFiles/startup.root', 'RECREATE' )
+myfile = TFile( 'RootFiles/tau_cross_piplus_mixing_angle.root', 'RECREATE' )
 
 #
 def histogram(directory, name, description):
@@ -16,7 +16,8 @@ def histogram(directory, name, description):
     hist2 = TH1F( name + "_tau_im", "Invariant Mass of tau Pairs", 100, 0, 200 )
     hist3 = TH1F( name + "_combined_fv", "Added Magnitude of Tau Four Vectors", 100, -200, 200 )
     hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Four Vectors Boosted using Muon Frame", 100, -200, 200 )
-    hist5 = TH1F( name + "_angleBetween", "Angle between Unit vectors of plane, tau cross pi minus", 50, -5, 5) 
+    hist5 = TH1F( name + "_angleBetweenUnitVecs", "Angle between Unit vectors of plane, tau cross pi plus, with a non SM mixing angle", 50, -5, 5) 
+    hist6 = TH1F( name + "_angleBetweenTaus", "Angle between Tau Threevectors", 50, -5,5)
     hist2D = TH2F( name + "_im_dr", "Invariant Mass of Z vs Tau - AntiTau, no cut", 100,81, 101, 100, 0, 12 )
     hist2D.GetXaxis().SetTitle("Invariant Mass (GeV)")
     hist2D.GetYaxis().SetTitle("Tau - Antitau (GeV)")
@@ -92,10 +93,7 @@ def histogram(directory, name, description):
         momentum = (muon.momentum + antimuon.momentum)
         hist1.Fill(momentum.m())
         muon_boost = TLorentzVector()
-        muon_boost.SetPx(momentum.px)
-        muon_boost.SetPy(momentum.py)
-        muon_boost.SetPz(momentum.pz)
-        muon_boost.SetE(momentum.e)
+        muon_boost.SetPtEtaPhiM(momentum.pt(),momentum.eta(),momentum.phi(),125)
         tau_fourvector = TLorentzVector()
         tau_fourvector.SetPx(tau.momentum.px)
         tau_fourvector.SetPy(tau.momentum.py)
@@ -118,15 +116,22 @@ def histogram(directory, name, description):
         piminus_fourvector.SetE(piminus.momentum.e)
         hist2.Fill((tau.momentum+antitau.momentum).m())
         hist3.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
-        tau_fourvector.Boost((momentum.m()/125)*muon_boost.BoostVector())
-        antitau_fourvector.Boost((momentum.m()/125)*muon_boost.BoostVector())
-        piplus_fourvector.Boost((momentum.m()/125)*muon_boost.BoostVector())
-        piminus_fourvector.Boost((momentum.m()/125)*muon_boost.BoostVector())
+        tau_fourvector.Boost(muon_boost.BoostVector())
+        antitau_fourvector.Boost(muon_boost.BoostVector())
+        piplus_fourvector.Boost(muon_boost.BoostVector())
+        piminus_fourvector.Boost(muon_boost.BoostVector())
         hist4.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
-        u1 = tau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
-        u2 = antitau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
-        hist5.Fill(u1.Angle(u2))
+        #u1 = tau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
+        #u2 = antitau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
+        u1 = tau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
+        u2 = antitau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
+        angleforSign = u1.Cross(u2).Unit()
+        sign = -1
+        if (angleforSign.Angle(tau_fourvector.Vect()) < (math.pi/2) ):
+            sign = 1
+        hist5.Fill(sign*u1.Angle(u2))
+        hist6.Fill(tau_fourvector.Vect().Angle(antitau_fourvector.Vect()))
         hist2D.Fill(momentum.m(),(tau_fourvector + antitau_fourvector).Vect().Mag())
     myfile.Write()
-histogram("data","Initial study","H tau tau events")
+histogram("mixing_angle_data","Initial study","H tau tau events")
 myfile.Close()
