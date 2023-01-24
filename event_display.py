@@ -15,40 +15,44 @@ import os
 myfile = TFile( 'RootFiles/event_display.root', 'RECREATE' )
 
 
-def event_display(directory, name, description):
-    
+def event_display():
+   
+
     gEve = TEveManager.Create() 
     
     track_list = TEveTrackList()
     prop = track_list.GetPropagator()
     prop.SetMagField(0)
-    track_list.SetElementName(track_list.GetElementName()+ ", zeroB")
-    #track = make_track(prop, 1)
-    rc = TEveRecTrackD()
-    rc.fV.Set(0., 0., 0.)
-    rc.fP.Set(1, 1, 1)
-    rc.fSign = 1
-    track = TEveTrack(rc, prop)
-    track.SetName("Charge 1")
 
-
-    #daughter 0
-    pm1 = TEvePathMarkD(TEvePathMarkD.kDaughter)
-    pm1.fV.Set(-40., -40., 3.)
-    track.AddPathMark(pm1)
-    # daughter 1
-    pm2 = TEvePathMarkD(TEvePathMarkD.kDaughter)
-    pm2.fV.Set(57., -89., -9.)
-    track.AddPathMark(pm2)
+    gEve.AddElement(track_list)
 
     track_list.SetLineColor(kMagenta)
-    track.SetLineColor(track_list.GetLineColor())
-    
-    gEve.AddElement(track_list)
-    track_list.AddElement(track)
- 
-    track.MakeTrack()
- 
+    reader = hep.ReaderAscii('./single_event.hepmc')
+
+    events = []
+    evt = hep.GenEvent()
+    endCondition = False
+    reader.read_event(evt)
+    i = 0.
+
+    for particle in evt.particles: 
+
+        start = particle.production_vertex
+        end = particle.end_vertex
+
+        rc = TEveRecTrackD()
+        rc.fV.Set(i, i, i)
+        rc.fP.Set(10.0*(i+1), 10.0*(i+1), 10*(i+1))
+        rc.fSign = 1
+        track = TEveTrack(rc, prop)
+        track.SetName("Particle " + str(i))
+
+        track_list.AddElement(track)
+
+        track.SetLineColor(track_list.GetLineColor())
+        track.MakeTrack()
+        print(i)
+        i = i+1
     ev = gEve.GetDefaultViewer()
     gv = ev.GetGLViewer()
     gv.SetGuideState(TGLUtil.kAxesOrigin, kTRUE, kFALSE, 0)
@@ -60,5 +64,5 @@ def event_display(directory, name, description):
     gv.RequestDraw()
         
     #gv.SavePicture("plots/event_display0.png")
-event_display("data","Initial study","H tau tau events")
+event_display()
 myfile.Close()
