@@ -7,7 +7,7 @@ import os
 
 
 
-def histogram(directory, name, description,root_file,tau_cross_piplus):
+def histogram(directory, name, description,root_file):
     #Set to UPDATE to leave previous files there
     #Open the .root file in RECREATE mode in order to wipe all histograms previously there
     myfile = TFile( 'RootFiles/'+str(root_file)+'.root', 'RECREATE' )
@@ -16,11 +16,16 @@ def histogram(directory, name, description,root_file,tau_cross_piplus):
     hist2 = TH1F( name + "_tau_im", "Invariant Mass of tau Pairs", 100, 0, 200 )
     hist3 = TH1F( name + "_combined_fv", "Added Magnitude of Tau Four Vectors", 100, -200, 200 )
     hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Four Vectors Boosted using Muon Frame", 100, -200, 200 )
-    hist5 = TH1F( name + "_angleBetweenUnitVecs", "Angle between Unit vectors of plane, tau cross pi lus", 200, -5, 5) 
+    hist5 = TH1F( name + "_angleBetweenUnitVecsPiPlus", "Angle between Unit vectors of plane, tau cross pi plus", 200, -5, 5) 
     hist6 = TH1F( name + "_angleBetweenTaus", "Angle between Tau Threevectors", 50, -5,5)
+    hist7 = TH1F( name + "_angleBetweenUnitVecsPiMinus", "Angle between Unit vectors of plane, tau cross pi minus", 200, -5, 5)
     hist2D = TH2F( name + "_im_dr", "Invariant Mass of Z vs Tau - AntiTau, no cut", 100,81, 101, 100, 0, 12 )
     hist2D.GetXaxis().SetTitle("Invariant Mass (GeV)")
     hist2D.GetYaxis().SetTitle("Tau - Antitau (GeV)")
+    crossproduct2D = TH2F ( name + "_angleBetweenUnitVecs2D","Correlation between the two unit vector angles",
+                           200,-4,4,200,-4,4)
+    crossproduct2D.GetXaxis().SetTitle("Tau cross Pi Plus")
+    crossproduct2D.GetXaxis().SetTitle("Tau cross Pi minus")
     directory = os.fsencode(directory)
 
     reader = None
@@ -126,25 +131,25 @@ def histogram(directory, name, description,root_file,tau_cross_piplus):
         piplus_fourvector.Boost(muon_boost.BoostVector())
         piminus_fourvector.Boost(muon_boost.BoostVector())
         hist4.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
-        u1 = None
-        u2 = None
-        if (tau_cross_piplus):
-            u1 = tau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
-            u2 = antitau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
-        else:
-            u1 = tau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
-            u2 = antitau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
-        angleforSign = u1.Cross(u2).Unit()
-        sign = -1
-        if (angleforSign.Angle(tau_fourvector.Vect()) < (math.pi/2) ):
-            sign = 1
-        hist5.Fill(sign*u1.Angle(u2))
+        tau_cross_piplus = tau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
+        antitau_cross_piminus = antitau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
+        tau_cross_piminus = tau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
+        antitau_cross_piplus = antitau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
+        angleforSign1 = tau_cross_piplus.Cross(antitau_cross_piminus).Unit()
+        sign1 = -1
+        if (angleforSign1.Angle(tau_fourvector.Vect()) < (math.pi/2) ):
+            sign1 = 1
+        angleforSign2 = tau_cross_piminus.Cross(antitau_cross_piplus).Unit()
+        sign2 = -1
+        if (angleforSign2.Angle(tau_fourvector.Vect()) < (math.pi/2) ):
+            sign2 = 1
+        hist5.Fill(sign1*tau_cross_piplus.Angle(antitau_cross_piminus))
         hist6.Fill(tau_fourvector.Vect().Angle(antitau_fourvector.Vect()))
+        hist7.Fill(sign2*tau_cross_piminus.Angle(antitau_cross_piplus))
         hist2D.Fill(momentum.m(),(tau_fourvector + antitau_fourvector).Vect().Mag())
+        crossproduct2D.Fill(sign2*tau_cross_piminus.Angle(antitau_cross_piplus),sign1*tau_cross_piplus.Angle(antitau_cross_piminus))
     myfile.Write()
     myfile.Close()
 
-histogram("data","Initial study","H tau tau events","tau_cross_piplus",True)
-histogram("data","Initial study","H tau tau events","tau_cross_piminus",False)
-histogram("mixing_angle_data","Initial study","H tau tau events","tau_cross_piplus_mixing_angle",True)
-histogram("mixing_angle_data","Initial study","H tau tau events","tau_cross_piminus_mixing_angle",False)
+histogram("data","Initial study","H tau tau events","cp_phase_0")
+histogram("mixing_angle_data","Initial study","H tau tau events","cp_phase_pi_half")
