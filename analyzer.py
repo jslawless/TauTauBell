@@ -17,7 +17,7 @@ def muon_boost_vector(muon, antimuon, photons):
     return muon_boost
 
 def spacetime_separation(v1, v2):
-    return math.sqrt((v1.t*v2.t) - (v1.x*v2.x)-(v1.y*v2.y)-(v1.z*v2.z))
+    return (v1.t-v2.t)**2 - (v1.x-v2.x)**2 - (v1.y-v2.y)**2 - (v1.z-v2.z)**2
 
 def histogram(directory, name, description,root_file):
     #Set to UPDATE to leave previous files there
@@ -25,14 +25,24 @@ def histogram(directory, name, description,root_file):
     myfile = TFile( 'RootFiles/'+str(root_file)+'.root', 'RECREATE' )
 
     hist1 = TH1F( name + "_im", "Invariant Mass of Muon Pairs", 50, 0, 100 )
+    hist1.GetXaxis().SetTitle("Mass [GeV]")
     hist2 = TH1F( name + "_tau_im", "Invariant Mass of tau Pairs", 100, 0, 200 )
-    hist3 = TH1F( name + "_combined_fv", "Added Magnitude of Tau Four Vectors", 100, -200, 200 )
-    hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Four Vectors Boosted using Muon Frame", 100, -200, 200 )
-    hist5 = TH1F( name + "_angleBetweenUnitVecsPiPlus", "Angle between Unit vectors of plane, tau cross pi plus", 200, -5, 5) 
-    hist6 = TH1F( name + "_angleBetweenTaus", "Angle between Tau Threevectors", 50, -5,5)
-    hist7 = TH1F( name + "_angleBetweenUnitVecsPiMinus", "Angle between Unit vectors of plane, tau cross pi minus", 200, -5, 5)
+    hist2.GetXaxis().SetTitle("Mass [GeV]")
+    hist3 = TH1F( name + "_combined_fv", "Added Magnitude of Tau Three Vectors", 100, 0, 200 )
+    hist3.GetXaxis().SetTitle("Momentum [GeV]")
+    hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Three Vectors Boosted using Muon Frame", 100, 0, 200 )
+    hist4.GetXaxis().SetTitle("Momentum [GeV]")
+    hist5 = TH1F( name + "_angleBetweenUnitVecsPiPlus", "Angle between Unit vectors of plane, tau cross pi plus", 200,
+                 -3.5, 3.5)
+    hist5.GetXaxis().SetTitle("#Delta#phi")
+    hist6 = TH1F( name + "_angleBetweenTaus", "Angle between Tau Three Vectors", 50, -5,5)
+    hist6.GetXaxis().SetTitle("#Delta#phi")
+    hist7 = TH1F( name + "_angleBetweenUnitVecsPiMinus", "Angle between Unit vectors of plane, tau cross pi minus", 200,
+                 -3.5, 3.5)
+    hist7.GetXaxis().SetTitle("#Delta#phi")
     hist8 = TH1F( name + "_photonEnergy", "Photon Energy", 200,0, 1)
-    hist9 = TH1F( name + "_spacetimeSeparation", "Spacetime Separation",200, 0, 15)
+    hist9 = TH1F( name + "_spacetimeSeparation", "Spacetime Separation",300, -7, 1)
+    hist9.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
     hist2D = TH2F( name + "_im_dr", "Invariant Mass of Z vs Tau - AntiTau, no cut", 100,81, 101, 100, 0, 12 )
     hist2D.GetXaxis().SetTitle("Invariant Mass (GeV)")
     hist2D.GetYaxis().SetTitle("Tau - Antitau (GeV)")
@@ -40,15 +50,15 @@ def histogram(directory, name, description,root_file):
                            200,-4,4,200,-4,4)
     crossproduct2D.GetXaxis().SetTitle("Tau cross Pi Plus")
     crossproduct2D.GetYaxis().SetTitle("Tau cross Pi minus")
-    bell_effect = TH2F( name+ "_bellInequality","Spacetime Separation vs Delta Phi Between Unit Vectors", 40, 0.0,10.0,
-                       100, 4, -4)
-    bell_effect.GetXaxis().SetTitle("t1*t2 - x1*x2 - y1*y2 - z1*z2")
+    bell_effect = TH2F( name+ "_bellInequality","Spacetime Separation vs Delta Phi Between Unit Vectors", 12, -10,10.0,
+                       20, 4, -4)
+    bell_effect.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
     bell_effect.GetXaxis().SetLimits(0.0,10.0)
     bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
-    mock_bell_effect = TH2F( name+ "_mockBellInequality","Spacetime Separation vs Delta Phi Between Unit Vectors", 40,
-                            0,10,
-                       100, 4, -4)
-    mock_bell_effect.GetXaxis().SetTitle("t1*t2 - x1*x2 - y1*y2 - z1*z2")
+    mock_bell_effect = TH2F( name+ "_mockBellInequality","Spacetime Separation vs Delta Phi Between Unit Vectors", 12,
+                            -10,10,
+                       20, 4, -4)
+    mock_bell_effect.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
     mock_bell_effect.GetXaxis().SetLimits(0,10)
 
     mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
@@ -191,11 +201,11 @@ def histogram(directory, name, description,root_file):
         hist9.Fill(sep)
         hist2D.Fill(momentum.m(),(tau_fourvector + antitau_fourvector).Vect().Mag())
         crossproduct2D.Fill(sign2*tau_cross_piminus.Angle(antitau_cross_piplus),sign1*tau_cross_piplus.Angle(antitau_cross_piminus))
-        if sep < 10:
+        if sep > -10:
             bell_effect.Fill(sep,decay_plane)
-        if sep > 10:
+        if sep < -10:
            a = 0 
-        elif sep > 3.2:
+        elif sep < -4.5:
             mock_bell_effect.Fill(sep,random.uniform(-math.pi,math.pi))
         else:
             mock_bell_effect.Fill(sep,decay_plane)
@@ -204,5 +214,5 @@ def histogram(directory, name, description,root_file):
     myfile.Write()
     myfile.Close()
 
-histogram("data","cp 0","H tau tau events","cp_phase_0")
-histogram("mixing_angle_data","cp pi half","H tau tau events","cp_phase_pi_half")
+histogram("data","cp_0","H tau tau events","cp_phase_0")
+histogram("mixing_angle_data","cp_pi_half","H tau tau events","cp_phase_pi_half")
