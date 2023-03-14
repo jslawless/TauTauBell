@@ -9,6 +9,8 @@ import os
 
 def muon_boost_vector(muon, antimuon, photons):
     momentum = muon.momentum + antimuon.momentum
+    #Doing this to make sure the photons didn't come from
+    #the neutral pions, as that would mess up the boosting
     for ph in photons:
         if len(ph.parents) == 0:
             momentum = momentum + ph.momentum
@@ -152,39 +154,39 @@ def histogram(directory, name, description,root_file):
                 piminus = i
         momentum = (muon.momentum + antimuon.momentum)
         hist1.Fill(momentum.m())
+        
+        #Here the different boost vectors are created
         muon_boost = muon_boost_vector(muon,antimuon,photons)
         tau_fourvector = TLorentzVector()
-        tau_fourvector.SetPx(tau.momentum.px)
-        tau_fourvector.SetPy(tau.momentum.py)
-        tau_fourvector.SetPz(tau.momentum.pz)
-        tau_fourvector.SetE(tau.momentum.e)
+        tau_fourvector.SetPxPyPzE(tau.momentum.px,tau.momentum.py,tau.momentum.pz,tau.momentum.e)
         antitau_fourvector = TLorentzVector()
-        antitau_fourvector.SetPx(antitau.momentum.px)
-        antitau_fourvector.SetPy(antitau.momentum.py)
-        antitau_fourvector.SetPz(antitau.momentum.pz)
-        antitau_fourvector.SetE(antitau.momentum.e)
+        antitau_fourvector.SetPxPyPzE(antitau.momentum.px,antitau.momentum.py,antitau.momentum.pz,antitau.momentum.e)
         piplus_fourvector = TLorentzVector()
-        piplus_fourvector.SetPx(piplus.momentum.px)
-        piplus_fourvector.SetPy(piplus.momentum.py)
-        piplus_fourvector.SetPz(piplus.momentum.pz)
-        piplus_fourvector.SetE(piplus.momentum.e)
+        piplus_fourvector.SetPxPyPzE(piplus.momentum.px,piplus.momentum.py,piplus.momentum.pz,piplus.momentum.e)
         piminus_fourvector = TLorentzVector()
-        piminus_fourvector.SetPx(piminus.momentum.px)
-        piminus_fourvector.SetPy(piminus.momentum.py)
-        piminus_fourvector.SetPz(piminus.momentum.pz)
-        piminus_fourvector.SetE(piminus.momentum.e)
+        piminus_fourvector.SetPxPyPzE(piminus.momentum.px,piminus.momentum.py,piminus.momentum.pz,piminus.momentum.e)
         hist2.Fill((tau.momentum+antitau.momentum).m())
         hist3.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
+
+        #Boost into the HIggs rest frame
         tau_fourvector.Boost(muon_boost.BoostVector())
         antitau_fourvector.Boost(muon_boost.BoostVector())
         piplus_fourvector.Boost(muon_boost.BoostVector())
         piminus_fourvector.Boost(muon_boost.BoostVector())
         hist4.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
-
+        
+        #Find the unit vector of the decay plane of the taus
+        #Its done two different ways to verify that its working
+        #The tau is taken with its own decay product, and with the 
+        #antitau decay product as well.
         tau_cross_piplus = tau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
         antitau_cross_piminus = antitau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
         tau_cross_piminus = tau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
         antitau_cross_piplus = antitau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
+        
+        #The ROOT method .Angle() doesn't have a sign, but we need a two sided
+        #distribution to look more sinusoidal. We preserve the sign here and add it back in
+        #after .Angle() removes it.
         angleforSign1 = tau_cross_piplus.Cross(antitau_cross_piminus).Unit()
         sign1 = -1
         if (angleforSign1.Angle(tau_fourvector.Vect()) < (math.pi/2) ):
