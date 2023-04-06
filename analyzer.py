@@ -5,8 +5,6 @@ from ROOT import TCanvas, TPad, TH1F,TH2F, TFile
 from ROOT import gROOT, gBenchmark, TLorentzVector
 import os
 
-
-
 def muon_boost_vector(muon, antimuon, photons):
     momentum = muon.momentum + antimuon.momentum
     #Doing this to make sure the photons didn't come from
@@ -21,6 +19,14 @@ def muon_boost_vector(muon, antimuon, photons):
 def spacetime_separation(v1, v2):
     return (v1.t-v2.t)**2 - (v1.x-v2.x)**2 - (v1.y-v2.y)**2 - (v1.z-v2.z)**2
 
+def polarimeter(tau,pi,nu,neutralpi,no_neutralpion):
+    if no_neutralpion:
+        return pi.Vect()
+    mt = 1.777
+    return mt*(pi.Energy() - neutralpi.Energy())*(pi.Vect() - neutralpi.Vect()) + 0.5*((pi + neutralpi).M2())*nu.Vect()
+    
+    
+
 def histogram(directory, name, description,root_file):
     #Set to UPDATE to leave previous files there
     #Open the .root file in RECREATE mode in order to wipe all histograms previously there
@@ -34,39 +40,11 @@ def histogram(directory, name, description,root_file):
     hist3.GetXaxis().SetTitle("Momentum [GeV]")
     hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Three Vectors Boosted using Muon Frame", 100, 0, 200 )
     hist4.GetXaxis().SetTitle("Momentum [GeV]")
-    hist5 = TH1F( name + "_angleBetweenUnitVecsPiPlus", "Angle between Unit vectors of plane, tau cross pi plus", 200,
-                 -3.5, 3.5)
-    hist5.GetXaxis().SetTitle("#Delta#phi")
-    hist6 = TH1F( name + "_angleBetweenTaus", "Angle between Tau Three Vectors", 50, -5,5)
-    hist6.GetXaxis().SetTitle("#Delta#phi")
-    hist7 = TH1F( name + "_angleBetweenUnitVecsPiMinus", "Angle between Unit vectors of plane, tau cross pi minus", 200,
-                 -3.5, 3.5)
-    hist7.GetXaxis().SetTitle("#Delta#phi")
     hist8 = TH1F( name + "_photonEnergy", "Photon Energy", 200,0, 1)
-    hist9 = TH1F( name + "_spacetimeSeparation", "Spacetime Separation",300, -7, 1)
-    hist9.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
-    hist2D = TH2F( name + "_im_dr", "Invariant Mass of Z vs Tau - AntiTau, no cut", 100,81, 101, 100, 0, 12 )
-    hist2D.GetXaxis().SetTitle("Invariant Mass (GeV)")
-    hist2D.GetYaxis().SetTitle("Tau - Antitau (GeV)")
-    crossproduct2D = TH2F ( name + "_angleBetweenUnitVecs2D","Correlation between the two unit vector angles",
-                           200,-4,4,200,-4,4)
-    crossproduct2D.GetXaxis().SetTitle("Tau cross Pi Plus")
-    crossproduct2D.GetYaxis().SetTitle("Tau cross Pi minus")
-    bell_effect = TH2F( name+ "_bellInequality","Spacetime Separation vs Delta Phi Between Unit Vectors", 12, -10,10.0,
-                       20, 4, -4)
-    bell_effect.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
-    bell_effect.GetXaxis().SetLimits(0.0,10.0)
-    bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
-    mock_bell_effect = TH2F( name+ "_mockBellInequality","Spacetime Separation vs Delta Phi Between Unit Vectors", 12,
-                            -10,10,
-                       20, 4, -4)
-    mock_bell_effect.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
-    mock_bell_effect.GetXaxis().SetLimits(0,10)
-
-    mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
-    piplus_photon_energy = TH2F( name + "_piplus_photon_energy", "Total Photon Energy vs Angle between Unit vectors of plane, tau cross pi plus", 100,-4, 4, 100, 0, 90 )
-    piplus_photon_energy.GetXaxis().SetTitle("Tau cross Pi plus")
-    piplus_photon_energy.GetYaxis().SetTitle("Summed Energy of Photons(GeV)")
+    angle = TH1F( name + "_angle", "Angle Between Polarimeter Vectors, No Neutral Pions", 100, -3.15,3.15)
+    angle.GetXaxis().SetTitle("#Delta#phi")
+    npangle = TH1F( name + "_npangle", "Angle Between Polarimeter Vectors, Neutral Pions", 100, -3.15,3.15)
+    npangle.GetXaxis().SetTitle("#Delta#phi")
     directory = os.fsencode(directory)
 
     reader = None
@@ -86,8 +64,9 @@ def histogram(directory, name, description,root_file):
     
     low_energy_photons = 0
     total_photons = 0
-    
+    count = 0 
     while(not endCondition):
+        count = count + 1
         evt = hep.GenEvent()
         reader.read_event(evt)
         if reader.failed():
@@ -99,11 +78,13 @@ def histogram(directory, name, description,root_file):
         muon_candidates =[]
         antimuon_candidates = []
         tau_candidates =[]
+        tnu_candidates =[]
         antitau_candidates = []
+        antitnu_candidates = []
         piplus_candidates = []
         piminus_candidates = []
         photons = []
-        has_pi0 = False
+        pi0s = []
         for candidate in evt.particles:
             if candidate.pid == 13:
                 muon_candidates.append(candidate)
@@ -113,6 +94,10 @@ def histogram(directory, name, description,root_file):
                 tau_candidates.append(candidate)
             if candidate.pid == -15:
                 antitau_candidates.append(candidate)
+            if candidate.pid == 16:
+                tnu_candidates.append(candidate)
+            if candidate.pid == -16:
+                antitnu_candidates.append(candidate)
             if candidate.pid == 211:
                 piplus_candidates.append(candidate)
             if candidate.pid == -211:
@@ -120,17 +105,37 @@ def histogram(directory, name, description,root_file):
             if candidate.pid == 22:
                 photons.append(candidate)
             if candidate.pid == 111 or candidate.pid == -111:
-                has_pi0 = True
-        if has_pi0:
+                pi0s.append(candidate)
+        
+        #Find the neutral pions that belong to each tau
+        tau_pions = []
+        antitau_pions = []
+        for i in pi0s:
+            if len(i.parents) > 0:
+                if i.parents[0].pid == 15:
+                    tau_pions.append(i)
+                elif i.parents[0].pid == -15:
+                    antitau_pions.append(i)
+        
+        #Only accept events where each tau
+        #has one neutral pion or less
+        if len(tau_pions) > 1:
             continue
+        if len(antitau_pions) > 1:
+            continue
+
         photon_total_energy = 0
+
         for ph in photons:
             hist8.Fill(ph.momentum.e)
             photon_total_energy = photon_total_energy + ph.momentum.e
         total_photons = total_photons + len(photons)
+
         muon = muon_candidates[0]
         antimuon = antimuon_candidates[0]
         tau = tau_candidates[0]
+        nu = tnu_candidates[0]
+        antinu = antitnu_candidates[0]
         antitau = antitau_candidates[0]
         piplus = piplus_candidates[0]
         piminus = piminus_candidates[0]
@@ -145,6 +150,12 @@ def histogram(directory, name, description,root_file):
                 tau = i
         for i in antitau_candidates:
             if i.momentum.pt() > antitau.momentum.pt():
+                antitau = i
+        for i in tnu_candidates:
+            if i.momentum.pt() > nu.momentum.pt():
+                tau = i
+        for i in antitnu_candidates:
+            if i.momentum.pt() > antinu.momentum.pt():
                 antitau = i
         for i in piplus_candidates:
             if i.momentum.pt() > piplus.momentum.pt():
@@ -161,6 +172,10 @@ def histogram(directory, name, description,root_file):
         tau_fourvector.SetPxPyPzE(tau.momentum.px,tau.momentum.py,tau.momentum.pz,tau.momentum.e)
         antitau_fourvector = TLorentzVector()
         antitau_fourvector.SetPxPyPzE(antitau.momentum.px,antitau.momentum.py,antitau.momentum.pz,antitau.momentum.e)
+        nu_fourvector = TLorentzVector()
+        nu_fourvector.SetPxPyPzE(nu.momentum.px,nu.momentum.py,nu.momentum.pz,nu.momentum.e)
+        antinu_fourvector = TLorentzVector()
+        antinu_fourvector.SetPxPyPzE(antinu.momentum.px,antinu.momentum.py,antinu.momentum.pz,antinu.momentum.e)
         piplus_fourvector = TLorentzVector()
         piplus_fourvector.SetPxPyPzE(piplus.momentum.px,piplus.momentum.py,piplus.momentum.pz,piplus.momentum.e)
         piminus_fourvector = TLorentzVector()
@@ -171,48 +186,49 @@ def histogram(directory, name, description,root_file):
         #Boost into the HIggs rest frame
         tau_fourvector.Boost(muon_boost.BoostVector())
         antitau_fourvector.Boost(muon_boost.BoostVector())
+        nu_fourvector.Boost(muon_boost.BoostVector())
+        antinu_fourvector.Boost(muon_boost.BoostVector())
         piplus_fourvector.Boost(muon_boost.BoostVector())
         piminus_fourvector.Boost(muon_boost.BoostVector())
         hist4.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
-        
+
+        taupi_fourvector = TLorentzVector()
+        if len(tau_pions) > 0:
+            taupi_fourvector.SetPxPyPzE(tau_pions[0].momentum.px,tau_pions[0].momentum.py,tau_pions[0].momentum.pz,tau_pions[0].momentum.e)
+            taupi_fourvector.Boost(muon_boost.BoostVector())
+        antitaupi_fourvector = TLorentzVector()
+        if len(antitau_pions) > 0:
+            antitaupi_fourvector.SetPxPyPzE(antitau_pions[0].momentum.px,antitau_pions[0].momentum.py,antitau_pions[0].momentum.pz,antitau_pions[0].momentum.e)
+            antitaupi_fourvector.Boost(muon_boost.BoostVector())
+
         #Find the unit vector of the decay plane of the taus
-        #Its done two different ways to verify that its working
-        #The tau is taken with its own decay product, and with the 
-        #antitau decay product as well.
-        tau_cross_piplus = tau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
-        antitau_cross_piminus = antitau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
-        tau_cross_piminus = tau_fourvector.Vect().Cross(piminus_fourvector.Vect()).Unit()
-        antitau_cross_piplus = antitau_fourvector.Vect().Cross(piplus_fourvector.Vect()).Unit()
-        
+        tau_polarimeter = polarimeter(tau_fourvector,
+                                      piminus_fourvector,
+                                      nu_fourvector,
+                                      taupi_fourvector,
+                                      (len(tau_pions)==0)
+                                      )
+        antitau_polarimeter = polarimeter(antitau_fourvector,
+                                          piplus_fourvector,
+                                          antinu_fourvector,
+                                          antitaupi_fourvector,
+                                          (len(antitau_pions)==0)
+                                          )
+
         #The ROOT method .Angle() doesn't have a sign, but we need a two sided
         #distribution to look more sinusoidal. We preserve the sign here and add it back in
         #after .Angle() removes it.
-        angleforSign1 = tau_cross_piplus.Cross(antitau_cross_piminus).Unit()
-        sign1 = -1
-        if (angleforSign1.Angle(tau_fourvector.Vect()) < (math.pi/2) ):
-            sign1 = 1
-        angleforSign2 = tau_cross_piminus.Cross(antitau_cross_piplus).Unit()
-        sign2 = -1
-        if (angleforSign2.Angle(tau_fourvector.Vect()) < (math.pi/2) ):
-            sign2 = 1
-        hist5.Fill(sign1*tau_cross_piplus.Angle(antitau_cross_piminus))
-        hist6.Fill(tau_fourvector.Vect().Angle(antitau_fourvector.Vect()))
-        decay_plane = sign2*tau_cross_piminus.Angle(antitau_cross_piplus)
-        hist7.Fill(decay_plane)
-        sep = spacetime_separation(tau.end_vertex.position,antitau.end_vertex.position)
-        hist9.Fill(sep)
-        hist2D.Fill(momentum.m(),(tau_fourvector + antitau_fourvector).Vect().Mag())
-        crossproduct2D.Fill(sign2*tau_cross_piminus.Angle(antitau_cross_piplus),sign1*tau_cross_piplus.Angle(antitau_cross_piminus))
-        if sep > -10:
-            bell_effect.Fill(sep,decay_plane)
-        if sep < -10:
-           a = 0 
-        elif sep < -4.5:
-            mock_bell_effect.Fill(sep,random.uniform(-math.pi,math.pi))
+        angleforSign = tau_polarimeter.Cross(antitau_polarimeter).Unit()
+        sign = -1
+        if (angleforSign.Angle(tau_fourvector.Vect()) < (math.pi/2) ):
+            sign = 1
+        angle_between_polarimeters = sign*tau_fourvector.Vect().Cross(tau_polarimeter).Unit().Angle(tau_fourvector.Vect().Cross(antitau_polarimeter).Unit())
+        if ((len(tau_pions) == 0) and (len(antitau_pions) == 0)):
+            angle.Fill(angle_between_polarimeters)        
         else:
-            mock_bell_effect.Fill(sep,decay_plane)
-        piplus_photon_energy.Fill(sign1*tau_cross_piplus.Angle(antitau_cross_piminus),photon_total_energy)
+            npangle.Fill(angle_between_polarimeters)
 
+    print(count)
     myfile.Write()
     myfile.Close()
 
