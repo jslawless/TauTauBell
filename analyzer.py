@@ -19,6 +19,10 @@ def muon_boost_vector(muon, antimuon, photons):
 def spacetime_separation(v1, v2):
     return (v1.t-v2.t)**2 - (v1.x-v2.x)**2 - (v1.y-v2.y)**2 - (v1.z-v2.z)**2
 
+def mock_separation(v1, v2):
+    return abs(math.sqrt((v1.x-v2.x)**2 + (v1.y-v2.y)**2 + (v1.z-v2.z)**2)/(v1.t-v2.t))
+
+
 def polarimeter(tau,pi,nu,neutralpi,no_neutralpion):
     if no_neutralpion:
         return pi.Vect()
@@ -41,10 +45,41 @@ def histogram(directory, name, description,root_file):
     hist4 = TH1F( name + "_combined_boosted_fv", "Added Magnitude of Tau Three Vectors Boosted using Muon Frame", 100, 0, 200 )
     hist4.GetXaxis().SetTitle("Momentum [GeV]")
     hist8 = TH1F( name + "_photonEnergy", "Photon Energy", 200,0, 1)
+    ssep = TH1F( name + "_spacetimeSeparation", "Spacetime Separation",300, -200, 1)
+    ssep.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
+    fine_ssep = TH1F( name + "_finespacetimeSeparation", "Spacetime Separation",30, -0.5, 1)
+    fine_ssep.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
+    speed = TH1F( name + "_speed", "Speed",300, 0, 20)
+    speed.GetXaxis().SetTitle("#Delta r / #Delta t ")
     angle = TH1F( name + "_angle", "Angle Between Polarimeter Vectors, No Neutral Pions", 100, -3.15,3.15)
     angle.GetXaxis().SetTitle("#Delta#phi")
     npangle = TH1F( name + "_npangle", "Angle Between Polarimeter Vectors, Neutral Pions", 100, -3.15,3.15)
     npangle.GetXaxis().SetTitle("#Delta#phi")
+    bell_effect = TH2F( name+ "_bellInequality","Spacetime Separation vs Delta Phi Between Unit Vectors", 25, -10,10.0,
+                       20, 4, -4)
+    bell_effect.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
+    bell_effect.GetXaxis().SetLimits(0.0,10.0)
+    bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
+    mock_bell_effect = TH2F( name+ "_mockBellInequality","Spacetime Separation vs Delta Phi Between Unit Vectors", 25,
+                            -10,10,
+                       20, 4, -4)
+    mock_bell_effect.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
+    mock_bell_effect.GetXaxis().SetLimits(0,10)
+
+    mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
+    
+    speed_bell_effect = TH2F( name+ "_speedBellInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25, 1,20,20, 4, -4)
+    speed_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
+    speed_bell_effect.GetXaxis().SetLimits(0.0,10.0)
+    speed_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
+    speed_mock_bell_effect = TH2F( name+ "_speedMockInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
+    speed_mock_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
+    speed_mock_bell_effect.GetXaxis().SetLimits(0,10)
+
+    speed_mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
+
+
+
     directory = os.fsencode(directory)
 
     reader = None
@@ -227,7 +262,28 @@ def histogram(directory, name, description,root_file):
             angle.Fill(angle_between_polarimeters)        
         else:
             npangle.Fill(angle_between_polarimeters)
+        
+        sep = spacetime_separation(tau.end_vertex.position,antitau.end_vertex.position)
+        mock_sep = mock_separation(tau.end_vertex.position,antitau.end_vertex.position)
 
+        ssep.Fill(sep)
+        fine_ssep.Fill(sep)
+        speed.Fill(mock_sep)
+
+        rand = random.uniform(-math.pi,math.pi)
+        if sep > -25:
+            bell_effect.Fill(sep,angle_between_polarimeters)
+            if mock_sep < 2:
+                mock_bell_effect.Fill(sep,angle_between_polarimeters)
+            else:
+                mock_bell_effect.Fill(sep,rand)
+        if mock_sep < 5:
+            speed_bell_effect.Fill(mock_sep,angle_between_polarimeters)
+            if mock_sep < 2:
+                speed_mock_bell_effect.Fill(mock_sep,angle_between_polarimeters)
+            else:
+                speed_mock_bell_effect.Fill(mock_sep,rand)
+            
     print(count)
     myfile.Write()
     myfile.Close()

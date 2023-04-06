@@ -39,9 +39,9 @@ void extractor(TH2 *hist, const char* name){
 }
 
 void cfitter(){
-    TFile *f = new TFile("RootFiles/cp_phase_pi_half.root");
-    TH2F *bellhist = (TH2F*) f->Get("cp_pi_half_bellInequality;1");
-    TH2F *mockbellhist = (TH2F*) f->Get("cp_pi_half_mockBellInequality;1");
+    TFile *f = new TFile("RootFiles/cp_phase_0.root");
+    TH2F *bellhist = (TH2F*) f->Get("cp_0_speedBellInequality;1");
+    TH2F *mockbellhist = (TH2F*) f->Get("cp_0_speedMockInequality;1");
     
 
     bellhist->SetDirectory(0);

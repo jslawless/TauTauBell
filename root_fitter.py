@@ -19,11 +19,11 @@ def fix_bins(bins):
 def func(x, a, c):
     return -a * np.cos(x) + c
 
-myfile = uproot.open( 'RootFiles/'+'cp_phase_pi_half'+'.root' )
+myfile = uproot.open( 'RootFiles/'+'cp_phase_0'+'.root' )
 
 
-bellhist = myfile["cp_pi_half_bellInequality;1"].to_numpy()
-mockbellhist = myfile["cp_pi_half_mockBellInequality;1"].to_numpy()
+bellhist = myfile["cp_0_speedBellInequality;1"].to_numpy()
+mockbellhist = myfile["cp_0_speedMockInequality;1"].to_numpy()
 
 xbins = np.delete(np.delete(fix_bins(bellhist[2]),0),-1)
 xvalue = fix_bins(bellhist[1])
@@ -57,22 +57,28 @@ for i in range(0,len(xvalue)-1):
 ax.errorbar(bellfitsx,bellfitsy,yerr=bellerror, color = 'b',marker='+',ls='none',capsize=1.3,capthick=1.0)
 ax.errorbar(mockfitsx,mockfitsy,yerr=mockerror, color='r',marker='x',ls='none',capsize=1.3,capthick=1.0)
 
-ax.text(-9.7, -0.049, "Predicted Bell Effect",
+print(bellfitsx)
+
+ax.text(0.53, 0.12, "Predicted Bell Effect",
         fontdict={'family': 'arial',
                   'color': 'b',
                   'weight': 'normal',
                   'size': 12,
-                  }
+                  },
+        transform=ax.transAxes
         )
-ax.text(-9.7, -0.02, "Possible Unknown Cutoff",
+ax.text(0.53, 0.6, "v\u03C8  > 2c",
         fontdict={'family': 'arial',
                   'color': 'r', 
                   'weight': 'normal',
                   'size': 12,
-                  }
+                  },
+        transform=ax.transAxes
         )
 
 ax.axhline(0,color='g',linestyle=':')
 
-ax.set(xlabel=r"Space-Time Separation $\Delta t^2 - \Delta \vec{r}^2$ [mm$^2$]",ylabel="Fitted Amplitude")
+ax.set_xlim([1,5])
+ax.set_ylim([-0.05,0.05])
+ax.set(xlabel=r"Speed of Mediator $\Delta r / \Delta t$",ylabel="Fitted Amplitude")
 plt.show()
