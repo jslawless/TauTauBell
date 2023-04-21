@@ -2,7 +2,7 @@ import pyhepmc as hep
 import math,random
 import scipy.constants as sci
 from ROOT import TCanvas, TPad, TH1F,TH2F, TFile
-from ROOT import gROOT, gBenchmark, TLorentzVector
+from ROOT import gROOT, gBenchmark, TLorentzVector, gRandom
 import os
 
 def muon_boost_vector(muon, antimuon, photons):
@@ -19,9 +19,11 @@ def muon_boost_vector(muon, antimuon, photons):
 def spacetime_separation(v1, v2):
     return (v1.t-v2.t)**2 - (v1.x-v2.x)**2 - (v1.y-v2.y)**2 - (v1.z-v2.z)**2
 
-def mock_separation(v1, v2):
+def sep_speed(v1, v2):
     return abs(math.sqrt((v1.x-v2.x)**2 + (v1.y-v2.y)**2 + (v1.z-v2.z)**2)/(v1.t-v2.t))
 
+def smeared_speed(v1, v2):
+    return sep_speed(v1,v2)*gRandom.Gaus(1,0.2)
 
 def polarimeter(tau,pi,nu,neutralpi,no_neutralpion):
     if no_neutralpion:
@@ -29,7 +31,13 @@ def polarimeter(tau,pi,nu,neutralpi,no_neutralpion):
     mt = 1.777
     return mt*(pi.Energy() - neutralpi.Energy())*(pi.Vect() - neutralpi.Vect()) + 0.5*((pi + neutralpi).M2())*nu.Vect()
     
-    
+def neutrino_momentum(tau,pi,neutralpi,no_neutralpion):
+    if no_neutralpion:
+        return None
+    v = tau.Vect()- pi.Vect() - neutralpi.Vect()
+    nu = TLorentzVector()
+    nu.SetPxPyPzE(v.Px(),v.Py(),v.Pz(),v.Mag())
+    return nu
 
 def histogram(directory, name, description,root_file):
     #Set to UPDATE to leave previous files there
@@ -49,8 +57,8 @@ def histogram(directory, name, description,root_file):
     ssep.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
     fine_ssep = TH1F( name + "_finespacetimeSeparation", "Spacetime Separation",30, -0.5, 1)
     fine_ssep.GetXaxis().SetTitle("#Delta t^{2}-#Delta r^{2} [mm^{2}]")
-    speed = TH1F( name + "_speed", "Speed",300, 0, 20)
-    speed.GetXaxis().SetTitle("#Delta r / #Delta t ")
+    speedplot = TH1F( name + "_speed", "Speed",300, 0, 20)
+    speedplot.GetXaxis().SetTitle("#Delta r / #Delta t ")
     angle = TH1F( name + "_angle", "Angle Between Polarimeter Vectors, No Neutral Pions", 100, -3.15,3.15)
     angle.GetXaxis().SetTitle("#Delta#phi")
     npangle = TH1F( name + "_npangle", "Angle Between Polarimeter Vectors, Neutral Pions", 100, -3.15,3.15)
@@ -75,9 +83,25 @@ def histogram(directory, name, description,root_file):
     speed_mock_bell_effect = TH2F( name+ "_speedMockInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
     speed_mock_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
     speed_mock_bell_effect.GetXaxis().SetLimits(0,10)
-
     speed_mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
+    speed_mock2_bell_effect = TH2F( name+ "_speedMock2Inequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
+    speed_mock2_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
+    speed_mock2_bell_effect.GetXaxis().SetLimits(0,10)
+    speed_mock2_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
+    sm_speed_bell_effect = TH2F( name+ "_smspeedBellInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25, 1,20,20, 4, -4)
+    sm_speed_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
+    sm_speed_bell_effect.GetXaxis().SetLimits(0.0,10.0)
+    sm_speed_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
+    sm_speed_mock_bell_effect = TH2F( name+ "_smspeedMockInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
+    sm_speed_mock_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
+    sm_speed_mock_bell_effect.GetXaxis().SetLimits(0,10)
+    sm_speed_mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
+    sm_speed_mock2_bell_effect = TH2F( name+ "_smspeedMock2Inequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
+    sm_speed_mock2_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
+    sm_speed_mock2_bell_effect.GetXaxis().SetLimits(0,10)
+    sm_speed_mock2_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
 
+    hist9 = TH1F( name + "_neutrino", "Neutrino 3-Vector Truth - Kinematic", 200,-100, 100)
 
 
     directory = os.fsencode(directory)
@@ -207,10 +231,10 @@ def histogram(directory, name, description,root_file):
         tau_fourvector.SetPxPyPzE(tau.momentum.px,tau.momentum.py,tau.momentum.pz,tau.momentum.e)
         antitau_fourvector = TLorentzVector()
         antitau_fourvector.SetPxPyPzE(antitau.momentum.px,antitau.momentum.py,antitau.momentum.pz,antitau.momentum.e)
-        nu_fourvector = TLorentzVector()
-        nu_fourvector.SetPxPyPzE(nu.momentum.px,nu.momentum.py,nu.momentum.pz,nu.momentum.e)
-        antinu_fourvector = TLorentzVector()
-        antinu_fourvector.SetPxPyPzE(antinu.momentum.px,antinu.momentum.py,antinu.momentum.pz,antinu.momentum.e)
+        nu_truth = TLorentzVector()
+        nu_truth.SetPxPyPzE(nu.momentum.px,nu.momentum.py,nu.momentum.pz,nu.momentum.e)
+        antinu_truth = TLorentzVector()
+        antinu_truth.SetPxPyPzE(antinu.momentum.px,antinu.momentum.py,antinu.momentum.pz,antinu.momentum.e)
         piplus_fourvector = TLorentzVector()
         piplus_fourvector.SetPxPyPzE(piplus.momentum.px,piplus.momentum.py,piplus.momentum.pz,piplus.momentum.e)
         piminus_fourvector = TLorentzVector()
@@ -218,11 +242,12 @@ def histogram(directory, name, description,root_file):
         hist2.Fill((tau.momentum+antitau.momentum).m())
         hist3.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
 
+
         #Boost into the HIggs rest frame
         tau_fourvector.Boost(muon_boost.BoostVector())
         antitau_fourvector.Boost(muon_boost.BoostVector())
-        nu_fourvector.Boost(muon_boost.BoostVector())
-        antinu_fourvector.Boost(muon_boost.BoostVector())
+        nu_truth.Boost(muon_boost.BoostVector())
+        antinu_truth.Boost(muon_boost.BoostVector())
         piplus_fourvector.Boost(muon_boost.BoostVector())
         piminus_fourvector.Boost(muon_boost.BoostVector())
         hist4.Fill((tau_fourvector + antitau_fourvector).Vect().Mag())
@@ -235,6 +260,20 @@ def histogram(directory, name, description,root_file):
         if len(antitau_pions) > 0:
             antitaupi_fourvector.SetPxPyPzE(antitau_pions[0].momentum.px,antitau_pions[0].momentum.py,antitau_pions[0].momentum.pz,antitau_pions[0].momentum.e)
             antitaupi_fourvector.Boost(muon_boost.BoostVector())
+
+        nu_fourvector = neutrino_momentum(tau_fourvector,
+                                          piminus_fourvector,
+                                          taupi_fourvector,
+                                          (len(tau_pions)==0)
+                                          )
+        antinu_fourvector = neutrino_momentum(antitau_fourvector,
+                                              piplus_fourvector,
+                                              antitaupi_fourvector,
+                                              (len(antitau_pions)==0)
+                                              )
+
+        if (len(tau_pions)!=0):
+            hist9.Fill(nu_truth.Vect().Mag() - nu_fourvector.Vect().Mag())
 
         #Find the unit vector of the decay plane of the taus
         tau_polarimeter = polarimeter(tau_fourvector,
@@ -262,31 +301,42 @@ def histogram(directory, name, description,root_file):
             angle.Fill(angle_between_polarimeters)        
         else:
             npangle.Fill(angle_between_polarimeters)
-        
+
         sep = spacetime_separation(tau.end_vertex.position,antitau.end_vertex.position)
-        mock_sep = mock_separation(tau.end_vertex.position,antitau.end_vertex.position)
+        speed = sep_speed(tau.end_vertex.position,antitau.end_vertex.position)
+        smspeed = smeared_speed(tau.end_vertex.position,antitau.end_vertex.position)
 
         ssep.Fill(sep)
         fine_ssep.Fill(sep)
-        speed.Fill(mock_sep)
+        speedplot.Fill(speed)
 
         rand = random.uniform(-math.pi,math.pi)
+        rand2 = random.uniform(-math.pi,math.pi)
         if sep > -25:
             bell_effect.Fill(sep,angle_between_polarimeters)
-            if mock_sep < 2:
+            if speed < 2:
                 mock_bell_effect.Fill(sep,angle_between_polarimeters)
             else:
                 mock_bell_effect.Fill(sep,rand)
-        if mock_sep < 5:
-            speed_bell_effect.Fill(mock_sep,angle_between_polarimeters)
-            if mock_sep < 2:
-                speed_mock_bell_effect.Fill(mock_sep,angle_between_polarimeters)
+        if speed < 5:
+            speed_bell_effect.Fill(speed,angle_between_polarimeters)
+            sm_speed_bell_effect.Fill(smspeed,angle_between_polarimeters)
+            if speed < 2:
+                speed_mock_bell_effect.Fill(speed,angle_between_polarimeters)
+                sm_speed_mock_bell_effect.Fill(smspeed,angle_between_polarimeters)
             else:
-                speed_mock_bell_effect.Fill(mock_sep,rand)
-            
+                speed_mock_bell_effect.Fill(speed,rand)
+                sm_speed_mock_bell_effect.Fill(smspeed,rand)
+            if speed < 3:
+                speed_mock2_bell_effect.Fill(speed,angle_between_polarimeters)
+                sm_speed_mock2_bell_effect.Fill(smspeed,angle_between_polarimeters)
+            else:
+                speed_mock2_bell_effect.Fill(speed,rand)
+                sm_speed_mock2_bell_effect.Fill(smspeed,rand)
+
     print(count)
     myfile.Write()
     myfile.Close()
 
 histogram("data","cp_0","H tau tau events","cp_phase_0")
-histogram("mixing_angle_data","cp_pi_half","H tau tau events","cp_phase_pi_half")
+#histogram("mixing_angle_data","cp_pi_half","H tau tau events","cp_phase_pi_half")
