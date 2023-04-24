@@ -320,20 +320,26 @@ def histogram(directory, name, description,root_file):
                 mock_bell_effect.Fill(sep,rand)
         if speed < 5:
             speed_bell_effect.Fill(speed,angle_between_polarimeters)
-            sm_speed_bell_effect.Fill(smspeed,angle_between_polarimeters)
             if speed < 2:
                 speed_mock_bell_effect.Fill(speed,angle_between_polarimeters)
-                sm_speed_mock_bell_effect.Fill(smspeed,angle_between_polarimeters)
             else:
                 speed_mock_bell_effect.Fill(speed,rand)
-                sm_speed_mock_bell_effect.Fill(smspeed,rand)
             if speed < 3:
                 speed_mock2_bell_effect.Fill(speed,angle_between_polarimeters)
-                sm_speed_mock2_bell_effect.Fill(smspeed,angle_between_polarimeters)
             else:
                 speed_mock2_bell_effect.Fill(speed,rand)
+        if smspeed < 5:
+            sm_speed_bell_effect.Fill(smspeed,angle_between_polarimeters)
+            if speed < 2:
+                sm_speed_mock_bell_effect.Fill(smspeed,angle_between_polarimeters)
+            else:
+                sm_speed_mock_bell_effect.Fill(smspeed,rand)
+            if speed < 3:
+                sm_speed_mock2_bell_effect.Fill(smspeed,angle_between_polarimeters)
+            else:
                 sm_speed_mock2_bell_effect.Fill(smspeed,rand)
 
+        
     print(count)
     myfile.Write()
     myfile.Close()
