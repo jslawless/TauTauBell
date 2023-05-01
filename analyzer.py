@@ -3,6 +3,7 @@ import math,random
 import scipy.constants as sci
 from ROOT import TCanvas, TPad, TH1F,TH2F, TFile
 from ROOT import gROOT, gBenchmark, TLorentzVector, gRandom
+from reweight import reweight
 import os
 
 def muon_boost_vector(muon, antimuon, photons):
@@ -76,33 +77,43 @@ def histogram(directory, name, description,root_file):
 
     mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
     
-    speed_bell_effect = TH2F( name+ "_speedBellInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25, 1,20,20, 4, -4)
+    speed_bell_effect = TH2F( name+ "_speedBellInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 15, 1,20,20, 4, -4)
     speed_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
     speed_bell_effect.GetXaxis().SetLimits(0.0,10.0)
     speed_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
-    speed_mock_bell_effect = TH2F( name+ "_speedMockInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
+    speed_mock_bell_effect = TH2F( name+ "_speedMockInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 15,1,20,20, 4, -4)
     speed_mock_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
     speed_mock_bell_effect.GetXaxis().SetLimits(0,10)
     speed_mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
-    speed_mock2_bell_effect = TH2F( name+ "_speedMock2Inequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
+    speed_mock2_bell_effect = TH2F( name+ "_speedMock2Inequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 15,1,20,20, 4, -4)
     speed_mock2_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
     speed_mock2_bell_effect.GetXaxis().SetLimits(0,10)
     speed_mock2_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
-    sm_speed_bell_effect = TH2F( name+ "_smspeedBellInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25, 1,20,20, 4, -4)
+    sm_speed_bell_effect = TH2F( name+ "_smspeedBellInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 15, 1,20,20, 4, -4)
     sm_speed_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
     sm_speed_bell_effect.GetXaxis().SetLimits(0.0,10.0)
     sm_speed_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
-    sm_speed_mock_bell_effect = TH2F( name+ "_smspeedMockInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
+    sm_speed_mock_bell_effect = TH2F( name+ "_smspeedMockInequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 15,1,20,20, 4, -4)
     sm_speed_mock_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
     sm_speed_mock_bell_effect.GetXaxis().SetLimits(0,10)
     sm_speed_mock_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
-    sm_speed_mock2_bell_effect = TH2F( name+ "_smspeedMock2Inequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 25,1,20,20, 4, -4)
+    sm_speed_mock2_bell_effect = TH2F( name+ "_smspeedMock2Inequality","Speed of Mediator vs Delta Phi Between Unit Vectors", 15,1,20,20, 4, -4)
     sm_speed_mock2_bell_effect.GetXaxis().SetTitle("#Delta r/#Delta t")
     sm_speed_mock2_bell_effect.GetXaxis().SetLimits(0,10)
     sm_speed_mock2_bell_effect.GetYaxis().SetTitle("Angle Between Unit Vectors of the Decay Plane")
 
     hist9 = TH1F( name + "_neutrino", "Neutrino 3-Vector Truth - Kinematic", 200,-100, 100)
-
+    
+    bins_from_file = open("data/bins","r").read().split("\n")
+    print(bins_from_file)
+    bins_from_file.pop()
+    print(bins_from_file)
+    amps_from_file = open("data/bell_output.txt","r").read().split("\n")
+    amps_from_file.pop()
+    print(amps_from_file)
+    offsets = open("data/bell_offset.txt","r").read().split("\n")
+    offsets.pop()
+    print(offsets)
 
     directory = os.fsencode(directory)
 
@@ -323,21 +334,21 @@ def histogram(directory, name, description,root_file):
             if speed < 2:
                 speed_mock_bell_effect.Fill(speed,angle_between_polarimeters)
             else:
-                speed_mock_bell_effect.Fill(speed,rand)
+                speed_mock_bell_effect.Fill(speed,angle_between_polarimeters,reweight(angle_between_polarimeters,speed,amps_from_file,bins_from_file,offsets))
             if speed < 3:
                 speed_mock2_bell_effect.Fill(speed,angle_between_polarimeters)
             else:
-                speed_mock2_bell_effect.Fill(speed,rand)
+                speed_mock2_bell_effect.Fill(speed,angle_between_polarimeters,reweight(angle_between_polarimeters,speed,amps_from_file,bins_from_file,offsets))
         if smspeed < 5:
             sm_speed_bell_effect.Fill(smspeed,angle_between_polarimeters)
             if speed < 2:
                 sm_speed_mock_bell_effect.Fill(smspeed,angle_between_polarimeters)
             else:
-                sm_speed_mock_bell_effect.Fill(smspeed,rand)
+                sm_speed_mock_bell_effect.Fill(smspeed,angle_between_polarimeters,reweight(angle_between_polarimeters,speed,amps_from_file,bins_from_file,offsets))
             if speed < 3:
                 sm_speed_mock2_bell_effect.Fill(smspeed,angle_between_polarimeters)
             else:
-                sm_speed_mock2_bell_effect.Fill(smspeed,rand)
+                sm_speed_mock2_bell_effect.Fill(smspeed,angle_between_polarimeters,reweight(angle_between_polarimeters,speed,amps_from_file,bins_from_file,offsets))
 
         
     print(count)

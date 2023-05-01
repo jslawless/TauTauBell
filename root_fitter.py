@@ -8,6 +8,8 @@ import matplotlib.patheffects as path_effects
 
 def fix_bins(bins):
     arr = []
+    #for i in bins:
+        #print(i)
     for i in range(0, len(bins)-1):
         arr.append(float(round((bins[i+1]-bins[i])/2+bins[i],4)))
     return np.array(arr)
@@ -34,15 +36,15 @@ class Plot:
 myfile = uproot.open( 'RootFiles/'+'cp_phase_0'+'.root' )
 
 plots = {
-    "mock2": Plot("mock2",'g','o',0.53, 0.7, "v\u03C8  > 3c"),
-    "bell": Plot("bell",'b','+',0.53, 0.12, "Predicted Bell Effect"),
-    "mock": Plot("mock",'r','x',0.53, 0.6, "v\u03C8  > 2c")
+    "mock2": Plot("mock2",'g','o',0.13, 0.7, "v\u03C8  > 3c"),
+    "bell": Plot("bell",'b','+',0.13, 0.12, "Predicted Bell Effect"),
+    "mock": Plot("mock",'r','x',0.13, 0.6, "v\u03C8  > 2c")
         }
 
 smeared_plots = {
-    "smmock2": Plot("smmock2",'g','o',0.53, 0.7, "v\u03C8  > 3c, then smeared"),
-    "smbell": Plot("smbell",'b','+',0.53, 0.12, "Bell Effect Smeared"),
-    "smmock": Plot("smmock",'r','x',0.53, 0.6, "v\u03C8  > 2c, then smeared")
+    "smmock2": Plot("smmock2",'g','o',0.13, 0.7, "v\u03C8  > 3c, then smeared"),
+    "smbell": Plot("smbell",'b','+',0.13, 0.12, "Bell Effect Smeared"),
+    "smmock": Plot("smmock",'r','x',0.13, 0.6, "v\u03C8  > 2c, then smeared")
     }
 
 bellhist = myfile["cp_0_speedBellInequality;1"].to_numpy()
@@ -86,12 +88,12 @@ for pl in smeared_plots:
 ax[0].axhline(0,color='g',linestyle=':')
 
 #ax.set_xlim([1,5])
-ax[0].set_ylim([-0.05,0.05])
+ax[0].set_ylim([-0.03,0.007])
 ax[0].set(xlabel=r"Speed of Mediator $\Delta r / \Delta t$",ylabel="Fitted Amplitude")
 ax[1].axhline(0,color='g',linestyle=':')
 
 #ax.set_xlim([1,5])
-ax[1].set_ylim([-0.05,0.05])
+ax[1].set_ylim([-0.03,0.007])
 ax[1].set(xlabel=r"Speed of Mediator $\Delta r / \Delta t$",ylabel="Fitted Amplitude")
 plt.tight_layout()
 plt.show()

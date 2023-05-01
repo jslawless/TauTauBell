@@ -10,6 +10,7 @@ void extractor(TH2 *hist, const char* name){
     TH1D *iter;
     TFitResultPtr res;
     double p1[hist->GetNbinsX()];
+    double p0[hist->GetNbinsX()];
     double error[hist->GetNbinsX()];
     TF1 *f1;
     for(int i = 0; i < hist->GetNbinsX(); i++){
@@ -17,6 +18,7 @@ void extractor(TH2 *hist, const char* name){
         iter->Scale(1/iter->Integral());
         f1 = new TF1("f1", "[0] + [1]*cos(x)");
         iter->Fit(f1,"","",-3.14,3.14);
+        p0[i] = f1->GetParameter(0);
         p1[i] = f1->GetParameter(1);
         error[i] = f1->GetParError(1);
         iter->Draw();
@@ -29,6 +31,12 @@ void extractor(TH2 *hist, const char* name){
         paramfile << p1[i] <<endl;
     }
     paramfile.close();
+    ofstream param2file;
+    param2file.open((std::string("data/")+std::string(name)+std::string("_offset.txt")).c_str());
+    for(int i =0; i < hist->GetNbinsX(); i++){
+        param2file << p0[i] <<endl;
+    }
+    param2file.close();
     ofstream errfile;
     errfile.open((std::string("data/")+std::string(name)+std::string("_err.txt")).c_str());
     for(int i =0; i < hist->GetNbinsX(); i++){
