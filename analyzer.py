@@ -24,6 +24,21 @@ def sep_speed(v1, v2):
     return abs(math.sqrt((v1.x-v2.x)**2 + (v1.y-v2.y)**2 + (v1.z-v2.z)**2)/(v1.t-v2.t))
 
 def smeared_speed(v1, v2):
+    #TODO change this function such that it smears each component by an amount
+    smv1 = hep.FourVector()
+    smv1.x = v1.x +gRandom.Gaus(0,0.002)
+    smv1.y = v1.y +gRandom.Gaus(0,0.002)
+    smv1.z = v1.z +gRandom.Gaus(0,0.1)
+    smv1.t = v1.t
+    smv2 = hep.FourVector()
+    smv2.x = v2.x +gRandom.Gaus(0,0.002)
+    smv2.y = v2.y +gRandom.Gaus(0,0.002)
+    smv2.z = v2.z +gRandom.Gaus(0,0.1)
+    smv2.t = v2.t
+    print()
+    print()
+    print(str(v1.x) + " " + str(smv1.x))
+    print(str(v1.z) + " " + str(smv1.z))
     return sep_speed(v1,v2)*gRandom.Gaus(1,0.2)
 
 def polarimeter(tau,pi,nu,neutralpi,no_neutralpion):
